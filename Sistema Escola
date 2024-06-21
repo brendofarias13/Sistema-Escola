@@ -1,0 +1,246 @@
+import mysql.connector  # Importa o conector MySQL
+
+
+class Aluno:
+    def __init__(self, nome, idade):
+        self.nome = nome  # Inicializa o atributo 'nome' do objeto Aluno com o parâmetro 'nome'
+        self.idade = idade  # Inicializa o atributo 'idade' do objeto Aluno com o parâmetro 'idade'
+
+
+class Professor:
+    def __init__(self, nome, curso, carga_horaria):
+        self.nome = nome  # Inicializa o atributo 'nome' do objeto Professor com o parâmetro 'nome'
+        self.curso = curso  # Inicializa o atributo 'curso' do objeto Professor com o parâmetro 'curso'
+        self.carga_horaria = carga_horaria  # Inicializa o atributo 'carga_horaria' do objeto Professor com o parâmetro 'carga_horaria'
+
+
+class Matricula:
+    def __init__(self, aluno_id, professor_id, curso_id):
+        self.aluno_id = aluno_id  # Inicializa o atributo 'aluno_id' do objeto Matricula com o parâmetro 'aluno_id'
+        self.professor_id = professor_id  # Inicializa o atributo 'professor_id' do objeto Matricula com o parâmetro 'professor_id'
+        self.curso_id = curso_id  # Inicializa o atributo 'curso_id' do objeto Matricula com o parâmetro 'curso_id'
+
+
+class SistemaEscola:
+    def __init__(self):
+        self.conexao = mysql.connector.connect(
+            host="localhost",  # Define o endereço do host do banco de dados MySQL
+            user="root",  # Define o nome de usuário para acesso ao banco de dados
+            password="he182555@",  # Define a senha para acesso ao banco de dados
+            database="senac"  # Define o nome do banco de dados que será utilizado
+        )
+        self.cursor = self.conexao.cursor()  # Cria um cursor para executar comandos SQL
+
+    def inserir_professor_e_curso(self, professor):
+        try:
+            # Inserir professor na tabela 'professor'
+            sql_professor = "INSERT INTO professor (nome) VALUES (%s)"  # Define o comando SQL para inserir um professor
+            valores_professor = (professor.nome,)  # Define os valores a serem inseridos (apenas o nome do professor)
+            self.cursor.execute(sql_professor, valores_professor)  # Executa o comando SQL para inserir o professor
+            self.conexao.commit()  # Confirma a transação no banco de dados
+            professor_id = self.cursor.lastrowid  # Obtém o ID do professor inserido
+            print(f"Professor '{professor.nome}' adicionado com sucesso.")  # Imprime mensagem de sucesso
+
+            # Inserir curso na tabela 'curso' associando ao professor
+            sql_curso = "INSERT INTO curso (nome, carga_horaria, professor_id) VALUES (%s, %s, %s)"  # Define o comando SQL para inserir um curso
+            valores_curso = (professor.curso, professor.carga_horaria, professor_id)  # Define os valores a serem inseridos (nome do curso, carga horária e ID do professor)
+            self.cursor.execute(sql_curso, valores_curso)  # Executa o comando SQL para inserir o curso
+            self.conexao.commit()  # Confirma a transação no banco de dados
+            print(f"Curso '{professor.curso}' adicionado com sucesso.")  # Imprime mensagem de sucesso
+
+        except mysql.connector.Error as err:  # Trata erros específicos do MySQL
+            print(f"Erro ao inserir professor e curso: {err}")  # Imprime mensagem de erro
+
+    def excluir_professor_e_curso(self, professor_id):
+        try:
+            # Excluir curso associado ao professor
+            sql_curso = "DELETE FROM curso WHERE professor_id = %s"  # Define o comando SQL para excluir o curso com base no ID do professor
+            self.cursor.execute(sql_curso, (professor_id,))  # Executa o comando SQL para excluir o curso
+            self.conexao.commit()  # Confirma a transação no banco de dados
+            print(f"Curso ministrado pelo professor com ID {professor_id} excluído com sucesso.")  # Imprime mensagem de sucesso
+
+            # Excluir professor pelo ID
+            sql_professor = "DELETE FROM professor WHERE id = %s"  # Define o comando SQL para excluir o professor com base no ID
+            self.cursor.execute(sql_professor, (professor_id,))  # Executa o comando SQL para excluir o professor
+            self.conexao.commit()  # Confirma a transação no banco de dados
+            print(f"Professor com ID {professor_id} excluído com sucesso.")  # Imprime mensagem de sucesso
+
+        except mysql.connector.Error as err:  # Trata erros específicos do MySQL
+            print(f"Erro ao excluir professor e curso: {err}")  # Imprime mensagem de erro
+
+    def matricular_aluno(self, aluno, nome_curso):
+        try:
+            # Inserir aluno na tabela 'aluno'
+            sql_aluno = "INSERT INTO aluno (nome, idade) VALUES (%s, %s)"  # Define o comando SQL para inserir um aluno
+            valores_aluno = (aluno.nome, aluno.idade)  # Define os valores a serem inseridos (nome e idade do aluno)
+            self.cursor.execute(sql_aluno, valores_aluno)  # Executa o comando SQL para inserir o aluno
+            self.conexao.commit()  # Confirma a transação no banco de dados
+            aluno_id = self.cursor.lastrowid  # Obtém o ID do aluno inserido
+            print(f"Aluno '{aluno.nome}' adicionado com sucesso.")  # Imprime mensagem de sucesso
+
+            # Obter ID do curso pelo nome do curso
+            sql_curso = "SELECT id, professor_id FROM curso WHERE nome = %s"  # Define o comando SQL para obter o ID e o ID do professor de um curso com base no nome do curso
+            self.cursor.execute(sql_curso, (nome_curso,))  # Executa o comando SQL para obter o ID e o ID do professor do curso com base no nome do curso
+            curso_info = self.cursor.fetchone()  # Obtém as informações do curso
+            curso_id = curso_info[0]  # Define o ID do curso
+            professor_id = curso_info[1]  # Define o ID do professor associado ao curso
+
+            # Matricular aluno no curso na tabela 'matricula'
+            sql_matricula = "INSERT INTO matricula (aluno_id, professor_id, curso_id) VALUES (%s, %s, %s)"  # Define o comando SQL para matricular um aluno em um curso
+            valores_matricula = (aluno_id, professor_id, curso_id)  # Define os valores a serem inseridos (ID do aluno, ID do professor e ID do curso)
+            self.cursor.execute(sql_matricula, valores_matricula)  # Executa o comando SQL para matricular o aluno no curso
+            self.conexao.commit()  # Confirma a transação no banco de dados
+            print(f"Aluno '{aluno.nome}' matriculado no curso '{nome_curso}' com sucesso.")  # Imprime mensagem de sucesso
+
+        except mysql.connector.Error as err:  # Trata erros específicos do MySQL
+            print(f"Erro ao matricular aluno: {err}")  # Imprime mensagem de erro
+
+    def excluir_matricula(self, matricula_id):
+        try:
+            # Excluir matrícula pelo ID
+            sql = "DELETE FROM matricula WHERE id = %s"  # Define o comando SQL para excluir uma matrícula com base no ID da matrícula
+            self.cursor.execute(sql, (matricula_id,))  # Executa o comando SQL para excluir a matrícula
+            self.conexao.commit()  # Confirma a transação no banco de dados
+            print(f"Matrícula com ID {matricula_id} excluída com sucesso.")  # Imprime mensagem de sucesso
+
+        except mysql.connector.Error as err:  # Trata erros específicos do MySQL
+            print(f"Erro ao excluir matrícula: {err}")  # Imprime mensagem de erro
+
+    def consultar_matriculas(self):
+        try:
+            # Consultar matrículas, exibindo informações detalhadas
+            self.cursor.execute("""
+                SELECT
+                    c.id AS curso_id,
+                    c.nome AS curso_nome,
+                    a.nome AS aluno_nome,
+                    a.idade AS aluno_idade,
+                    p.nome AS professor_nome
+                FROM
+                    matricula m
+                JOIN
+                    aluno a ON m.aluno_id = a.id
+                JOIN
+                    professor p ON m.professor_id = p.id
+                JOIN
+                    curso c ON m.curso_id = c.id
+                ORDER BY
+                    c.id
+            """)
+            matriculas = self.cursor.fetchall()  # Obtém todas as matrículas
+
+            curso_atual = None
+            for matricula in matriculas:
+                if matricula[0] != curso_atual:
+                    curso_atual = matricula[0]
+                    print(f"\nCurso ID: {matricula[0]}, Nome: {matricula[1]}")  # Imprime o ID e nome do curso
+                print(f"    Aluno: {matricula[2]} ({matricula[3]} anos), Professor: {matricula[4]}")  # Imprime o nome do aluno, idade e nome do professor
+
+        except mysql.connector.Error as err:  # Trata erros específicos do MySQL
+            print(f"Erro ao consultar matrículas: {err}")  # Imprime mensagem de erro
+
+    def consultar_professores_e_cursos(self):
+        try:
+            # Consultar todos os professores e os cursos que ministram
+            self.cursor.execute("""
+                SELECT
+                    p.id AS professor_id,
+                    p.nome AS professor_nome,
+                    c.id AS curso_id,
+                    c.nome AS curso_nome,
+                    c.carga_horaria AS curso_carga_horaria
+                FROM
+                    professor p
+                JOIN
+                    curso c ON p.id = c.professor_id
+            """)
+            professores_cursos = self.cursor.fetchall()  # Obtém todos os resultados
+
+            for prof_curso in professores_cursos:
+                print(f"Professor ID: {prof_curso[0]}, Nome: {prof_curso[1]}, Curso ID: {prof_curso[2]}, Nome: {prof_curso[3]}, Carga Horária: {prof_curso[4]} horas")  # Imprime informações sobre professores e cursos
+
+        except mysql.connector.Error as err:  # Trata erros específicos do MySQL
+            print(f"Erro ao consultar professores e cursos: {err}")  # Imprime mensagem de erro
+
+    def consultar_cursos(self):
+        try:
+            # Consultar todos os cursos disponíveis
+            self.cursor.execute("SELECT id, nome, carga_horaria FROM curso")  # Define o comando SQL para consultar todos os cursos
+            cursos = self.cursor.fetchall()  # Obtém todos os cursos
+
+            for curso in cursos:
+                print(f"ID: {curso[0]}, Nome: {curso[1]}, Carga Horária: {curso[2]}")  # Imprime informações sobre cada curso
+            return cursos  # Retorna a lista de cursos
+
+        except mysql.connector.Error as err:  # Trata erros específicos do MySQL
+            print(f"Erro ao consultar cursos: {err}")  # Imprime mensagem de erro
+
+    def fechar_conexao(self):
+        # Fecha o cursor e a conexão com o banco de dados
+        self.cursor.close()  # Fecha o cursor
+        self.conexao.close()  # Fecha a conexão com o banco de dados
+
+
+def menu():
+    sistema = SistemaEscola()  # Cria uma instância do sistema de escola
+
+    while True:  # Loop principal do menu
+        print("\n1. Matricular Aluno")
+        print("2. Inserir Professor e Curso")
+        print("3. Excluir Professor e Curso")
+        print("4. Consultar Matrículas")
+        print("5. Consultar Professores e Cursos")
+        print("6. Excluir Matrícula")
+        print("7. Sair")
+        escolha = input("Escolha uma opção: ")  # Solicita ao usuário que escolha uma opção
+
+        if escolha == "1":  # Opção para matricular um aluno
+            nome = input("Nome do Aluno: ")  # Solicita o nome do aluno
+            idade = int(input("Idade do Aluno: "))  # Solicita a idade do aluno
+            aluno = Aluno(nome, idade)  # Cria um objeto Aluno com os dados fornecidos
+
+            # Consultar cursos disponíveis
+            cursos = sistema.consultar_cursos()  # Chama o método consultar_cursos() do sistema
+            nome_curso = input("Nome do Curso: ")  # Solicita o nome do curso desejado
+
+            encontrado = False  # Variável para verificar se o curso foi encontrado
+            for curso in cursos:  # Loop para verificar se o curso está na lista de cursos consultados
+                if curso[1].lower() == nome_curso.lower():  # Compara o nome do curso de forma case-insensitive
+                    encontrado = True  # Marca como encontrado
+                    sistema.matricular_aluno(aluno, nome_curso)  # Matricula o aluno no curso encontrado
+                    break  # Sai do loop ao encontrar o curso
+
+            if not encontrado:  # Se o curso não foi encontrado
+                print("Curso não encontrado.")  # Imprime mensagem de curso não encontrado
+
+        elif escolha == "2":  # Opção para inserir um professor e um curso
+            nome_professor = input("Nome do Professor: ")  # Solicita o nome do professor
+            nome_curso = input("Nome do Curso: ")  # Solicita o nome do curso
+            carga_horaria = int(input("Carga Horária do Curso: "))  # Solicita a carga horária do curso
+            professor = Professor(nome_professor, nome_curso, carga_horaria)  # Cria um objeto Professor com os dados fornecidos
+            sistema.inserir_professor_e_curso(professor)  # Chama o método inserir_professor_e_curso() do sistema
+
+        elif escolha == "3":  # Opção para excluir um professor e um curso
+            professor_id = int(input("ID do Professor a ser excluído: "))  # Solicita o ID do professor a ser excluído
+            sistema.excluir_professor_e_curso(professor_id)  # Chama o método excluir_professor_e_curso() do sistema
+
+        elif escolha == "4":  # Opção para consultar as matrículas
+            sistema.consultar_matriculas()  # Chama o método consultar_matriculas() do sistema
+
+        elif escolha == "5":  # Opção para consultar professores e cursos
+            sistema.consultar_professores_e_cursos()  # Chama o método consultar_professores_e_cursos() do sistema
+
+        elif escolha == "6":  # Opção para excluir uma matrícula
+            matricula_id = int(input("ID da Matrícula a ser excluída: "))  # Solicita o ID da matrícula a ser excluída
+            sistema.excluir_matricula(matricula_id)  # Chama o método excluir_matricula() do sistema
+
+        elif escolha == "7":  # Opção para sair do programa
+            sistema.fechar_conexao()  # Chama o método fechar_conexao() do sistema
+            break  # Sai do loop principal
+
+        else:  # Se a opção escolhida não for válida
+            print("Opção inválida. Escolha novamente.")  # Imprime mensagem de opção inválida
+
+
+if __name__ == "__main__":
+    menu()  # Executa a função menu() quando o script é executado diretamente
